@@ -38,7 +38,7 @@ A Vimport of [projekt0n/github-nvim-theme](https://github.com/projekt0n/github-n
 ## Requirements
 
 - Vim &gt;= 8.0
-- True color support recommended (`set termguicolors`). Falls back to xterm-256 approximations if unavailable.
+- True color support recommended (`set termguicolors`)
 
 ## Installation
 
