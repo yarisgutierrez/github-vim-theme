@@ -1,0 +1,378 @@
+*github-theme.txt*       GitHub's themes for Vim (port of github-nvim-theme)
+
+==============================================================================
+CONTENTS                                                 *github-theme-contents*
+
+    1. Introduction ................. |github-theme-intro|
+    2. Installation ................. |github-theme-install|
+    3. Usage ........................ |github-theme-usage|
+    4. Themes ....................... |github-theme-themes|
+    5. Configuration ................ |github-theme-config|
+        5.1 Options ................. |github-theme-options|
+        5.2 Styles .................. |github-theme-styles|
+        5.3 Inverse ................. |github-theme-inverse|
+        5.4 Darken .................. |github-theme-darken|
+        5.5 Modules ................. |github-theme-modules|
+        5.6 Palettes ................ |github-theme-palettes|
+        5.7 Specs ................... |github-theme-specs|
+        5.8 Groups .................. |github-theme-groups|
+    6. Status lines ................. |github-theme-statuslines|
+        6.1 Airline ................. |github-theme-airline|
+        6.2 Lightline ............... |github-theme-lightline|
+    7. API .......................... |github-theme-api|
+    8. Color library ................ |github-theme-color|
+    9. Commands ..................... |github-theme-commands|
+   10. Limitations .................. |github-theme-limitations|
+
+==============================================================================
+1. INTRODUCTION                                             *github-theme-intro*
+
+github-vim-theme is a Vim port of projekt0n/github-nvim-theme. It provides
+11 GitHub colorschemes matching the Primer design system, with matching
+vim-airline and lightline themes.
+
+This is a pure vimscript port: no Lua, no Neovim required. Works with Vim
+>= 8.0 (true color recommended).
+
+This port was derived from the Neovim theme at:
+    https://github.com/projekt0n/github-nvim-theme
+
+==============================================================================
+2. INSTALLATION                                           *github-theme-install*
+
+Using vim-plug: >
+    Plug 'github-vim-theme'
+<
+Using Vim's built-in package manager: place the plugin directory under
+    ~/.vim/pack/themes/start/github-vim-theme/
+<
+Minimum recommended runtime settings: >
+    set termguicolors
+    syntax on
+<
+==============================================================================
+3. USAGE                                                    *github-theme-usage*
+
+Enable a theme with |:colorscheme|: >
+    colorscheme github_dark
+<
+==============================================================================
+4. THEMES                                                  *github-theme-themes*
+
+All 11 variants from github-nvim-theme are available:
+
+    github_dark                     Slightly-lifted GitHub dark
+    github_dark_default             Canonical GitHub Dark (#0d1117)
+    github_dark_dimmed              GitHub Dark Dimmed
+    github_dark_high_contrast       GitHub Dark High Contrast
+    github_dark_colorblind          GitHub Dark Colorblind (beta)
+    github_dark_tritanopia          GitHub Dark Tritanopia
+    github_light                    Slightly-tinted GitHub light
+    github_light_default            Canonical GitHub Light
+    github_light_high_contrast      GitHub Light High Contrast
+    github_light_colorblind         GitHub Light Colorblind (beta)
+    github_light_tritanopia         GitHub Light Tritanopia
+
+==============================================================================
+5. CONFIGURATION                                           *github-theme-config*
+
+Set |g:github_theme_config| before calling |:colorscheme|. Example: >
+
+    let g:github_theme_config = {
+      \ 'options': {
+        \ 'transparent': v:true,
+        \ 'hide_end_of_buffer': v:true,
+        \ 'styles': { 'comments': 'italic', 'keywords': 'bold' }
+      \ },
+      \ 'palettes': {
+        \ 'github_dark': { 'red': { 'base': '#ff0000' } }
+      \ },
+      \ 'specs': {},
+      \ 'groups': {
+        \ 'all': { 'Whitespace': { 'link': 'Comment' } }
+      \ }
+    \ }
+    colorscheme github_dark
+
+Settings are deep-merged over the defaults; unspecified keys keep defaults.
+
+------------------------------------------------------------------------------
+5.1 Options                                              *github-theme-options*
+
+Keys under 'options':
+
+    hide_end_of_buffer    v:true      Hide '~' characters past EOF
+    hide_nc_statusline    v:true      Underline non-current window statuslines
+    transparent           v:false     Skip setting Normal's background
+    terminal_colors       v:true      Set |g:terminal_ansi_colors|
+    dim_inactive          v:false     Non-current windows use bg0
+    module_default        v:true      Default enable state for plugin modules
+    styles                {...}       See |github-theme-styles|
+    inverse               {...}       See |github-theme-inverse|
+    darken                {...}       See |github-theme-darken|
+    modules               {...}       See |github-theme-modules|
+
+------------------------------------------------------------------------------
+5.2 Styles                                                *github-theme-styles*
+
+Syntax-group style overrides. Any valid |attr-list| value works ('italic',
+'bold', 'underline', 'bold,italic', 'NONE', etc.).
+
+Keys under 'options.styles':
+
+    comments       'NONE'
+    functions      'NONE'
+    keywords       'NONE'
+    variables      'NONE'
+    conditionals   'NONE'
+    constants      'NONE'
+    numbers        'NONE'
+    operators      'NONE'
+    strings        'NONE'
+    types          'NONE'
+
+------------------------------------------------------------------------------
+5.3 Inverse                                              *github-theme-inverse*
+
+Swap fg/bg (reverse attribute) for selected groups. Keys under
+'options.inverse':
+
+    match_paren    v:false
+    visual         v:false
+    search         v:false
+
+------------------------------------------------------------------------------
+5.4 Darken                                                *github-theme-darken*
+
+Darken sidebars and floating windows. Keys under 'options.darken':
+
+    floats                     v:true
+    sidebars.enable            v:true
+    sidebars.list              []
+
+------------------------------------------------------------------------------
+5.5 Modules                                              *github-theme-modules*
+
+Enable or disable highlight-group definitions for specific plugins. Each
+module can be set to v:true/v:false or a {'enable': v:true/v:false} dict.
+
+Modules included (Vim-compatible only; Neovim-only plugins such as
+telescope, nvim-cmp, nvim-tree, treesitter, and native LSP are NOT ported):
+
+    ale                vim-ale diagnostics
+    coc                coc.nvim (works in Vim)
+    gitgutter          airblade/vim-gitgutter
+    signify            mhinz/vim-signify
+    nerdtree           preservim/nerdtree
+    fzf                junegunn/fzf.vim (sets |g:fzf_colors|)
+    syntastic          vim-syntastic/syntastic
+    tagbar             preservim/tagbar
+    indent_blankline   generic IndentBlankline*/IndentLine groups
+    dirvish            justinmk/vim-dirvish
+    sneak              justinmk/vim-sneak
+    floaterm           voldikss/vim-floaterm
+
+Example: >
+    let g:github_theme_config = {
+      \ 'options': {
+        \ 'modules': {
+          \ 'coc': v:true,
+          \ 'nerdtree': v:false
+        \ }
+      \ }
+    \ }
+<
+------------------------------------------------------------------------------
+5.6 Palettes                                            *github-theme-palettes*
+
+Override named colors used by spec generation. Keyed by theme name, or
+'all' for global overrides. Example: >
+    let g:github_theme_config = {
+      \ 'palettes': {
+        \ 'all': { 'red': '#ff0000' },
+        \ 'github_dark': {
+          \ 'red': { 'base': '#8e1519', 'bright': '#ee0000' }
+        \ }
+      \ }
+    \ }
+<
+Each palette defines these colors (each has 'base' and 'bright' shades):
+    black, gray, blue, green, magenta, pink, red, white, yellow, cyan
+
+Plus these structured fields:
+    fg.{default,muted,subtle,on_emphasis}
+    canvas.{default,overlay,inset,subtle}
+    border.{default,muted,subtle}
+    neutral.{emphasis_plus,emphasis,muted,subtle}
+    accent.{fg,emphasis,muted,subtle}
+    success.{fg,emphasis,muted,subtle}
+    attention.{fg,emphasis,muted,subtle}
+    severe.{fg,emphasis,muted,subtle}
+    danger.{fg,emphasis,muted,subtle}
+    open, done, closed, sponsors (same shape)
+
+------------------------------------------------------------------------------
+5.7 Specs                                                  *github-theme-specs*
+
+Specs map palette colors onto logical groups (bg0..sel2, syntax.*, diag.*,
+diff.*, git.*). Override the same way as palettes: >
+    let g:github_theme_config = {
+      \ 'specs': {
+        \ 'all': { 'syntax': { 'keyword': 'magenta' } },
+        \ 'github_dark': { 'syntax': { 'operator': '#ffa261' } }
+      \ }
+    \ }
+<
+Spec fields:
+    bg0..bg4, fg0..fg3, sel0, sel1, sel2
+    syntax.{bracket, builtin0..2, comment, conditional, const, dep, field,
+            func, ident, keyword, number, operator, param, preproc, regex,
+            statement, string, type, tag, variable}
+    diag.{error, warn, info, hint}
+    diag_bg.{error, warn, info, hint}
+    diff.{add, delete, change, text}
+    git.{add, removed, changed, conflict, ignored}
+
+------------------------------------------------------------------------------
+5.8 Groups                                                *github-theme-groups*
+
+Override individual vim highlight groups wholesale. A group dict supports:
+    fg       foreground color (hex)
+    bg       background color (hex)
+    sp       special color (hex) for undercurl/underline
+    style    attr-list string ('bold', 'italic', 'underline', etc.)
+    link     highlight-group name to link to (overrides everything)
+
+Example: >
+    let g:github_theme_config = {
+      \ 'groups': {
+        \ 'all': {
+          \ 'Whitespace': { 'link': 'Comment' },
+          \ 'IncSearch':  { 'bg': '#76e3ea' }
+        \ },
+        \ 'github_dark': {
+          \ 'PmenuSel': { 'bg': '#73daca', 'fg': '#161b22' }
+        \ }
+      \ }
+    \ }
+<
+An empty dict {} clears the group (FALLBACK_OR_NONE semantics — allows
+other highlights at the same screen position to take precedence).
+
+==============================================================================
+6. STATUS LINES                                       *github-theme-statuslines*
+
+------------------------------------------------------------------------------
+6.1 Airline                                              *github-theme-airline*
+
+All 11 themes are provided as airline themes. Use |:AirlineTheme|: >
+    :AirlineTheme github_dark
+<
+Or set in your vimrc: >
+    let g:airline_theme = 'github_dark_default'
+<
+------------------------------------------------------------------------------
+6.2 Lightline                                          *github-theme-lightline*
+
+All 11 themes are provided as lightline colorschemes: >
+    let g:lightline = { 'colorscheme': 'github_dark' }
+<
+==============================================================================
+7. API                                                        *github-theme-api*
+
+                                            *github_theme#palette#load()*
+github_theme#palette#load([{name}])
+    Without argument: returns dict of all palettes keyed by theme name.
+    With argument: returns palette for a single theme. User overrides from
+    |g:github_theme_config.palettes| are applied.
+
+                                            *github_theme#spec#load()*
+github_theme#spec#load([{name}])
+    Same shape as palette#load but returns specs. Each spec includes
+    .palette (the palette it was derived from), plus .bg / .fg shortcuts.
+
+                                            *github_theme#palette#themes()*
+github_theme#palette#themes()
+    Returns the list of supported theme names.
+
+                                            *github_theme#config#get()*
+github_theme#config#get()
+    Returns the resolved (defaults + user) config dict.
+
+                                            *github_theme#config#options()*
+github_theme#config#options()
+    Shortcut for config.options.
+
+                                            *github_theme#config#module_enabled()*
+github_theme#config#module_enabled({name})
+    Returns v:true/v:false for a module by name.
+
+==============================================================================
+8. COLOR LIBRARY                                            *github-theme-color*
+
+github_theme#color#* provides color manipulation similar to the Lua
+library's Color class. Colors are represented as dicts:
+    {'red': 0-255, 'green': 0-255, 'blue': 0-255, 'alpha': 0-1}
+
+Functions:
+    from_hex(str)           Parse '#rgb' or '#rrggbb' or '#rrggbbaa'
+    from_rgba(r, g, b, a)   Build from components
+    from_hsv(h, s, v[, a])  Build from HSV
+    from_hsl(h, s, l[, a])  Build from HSL
+    to_hex(color[, with_a]) Return '#rrggbb' or '#rrggbbaa'
+    to_css(color[, with_a]) Alias of to_hex
+    to_rgba(color)          Round components, returns dict
+    to_hsv(color)           Convert to HSV dict
+    to_hsl(color)           Convert to HSL dict
+    blend(a, b, f)          Linear blend; f=0 returns a, f=1 returns b
+    blend_hex(a, b, f)      Same, but returns a hex string directly
+    shade(color, f)         Darken (f<0) or lighten (f>0) linearly
+    brighten(color, v)      Adjust HSV value channel (-100..100)
+    lighten(color, v)       Adjust HSL lightness
+    saturate(color, v)      Adjust HSL saturation
+    rotate(color, deg)      Rotate hue in degrees
+    luminance(color)        WCAG relative luminance
+    contrast(a, b)          WCAG contrast ratio
+
+Example: >
+    let sel = github_theme#color#blend_hex('#0d1117', '#2f81f7', 0.30)
+    " sel is now '#17335a'
+<
+==============================================================================
+9. COMMANDS                                              *github-theme-commands*
+
+                                                      *:GithubThemeReload*
+:GithubThemeReload [{name}]
+    Re-apply the currently-active github theme (or the named one). Useful
+    after runtime edits to |g:github_theme_config|.
+
+                                                      *:GithubThemeInfo*
+:GithubThemeInfo
+    Print the active theme name plus key spec values (bg1, fg1, accent,
+    transparent flag). Handy for debugging overrides.
+
+==============================================================================
+10. LIMITATIONS                                      *github-theme-limitations*
+
+This Vim port deliberately omits some features from the Neovim original:
+
+    Compile cache             Neovim serializes highlights to Lua bytecode;
+                              Vim has no equivalent. Loading is fast enough
+                              without it.
+
+    :GithubThemeInteractive   The Lua version reloads on BufWritePost via
+                              module cache invalidation. Vim has no module
+                              cache. Use |:GithubThemeReload| instead.
+
+    Treesitter                Neovim-only. No equivalent in Vim.
+
+    Native LSP                Neovim-only.
+
+    Neovim-specific plugins   lualine, telescope, nvim-cmp, nvim-tree,
+                              neo-tree, gitsigns, nvim-notify, fidget,
+                              dap-ui, lspsaga, etc. — skipped because the
+                              plugins themselves don't run in Vim. See
+                              |github-theme-modules| for what IS included.
+
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:
