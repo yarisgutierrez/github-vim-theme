@@ -93,30 +93,28 @@ function! github_theme#color#from_rgba(r, g, b, a) abort
   return { 'red': a:r * 1.0, 'green': a:g * 1.0, 'blue': a:b * 1.0, 'alpha': a:a * 1.0 }
 endfunction
 
+" Map a hue (0-360) and chroma to the unscaled (r1, g1, b1) triplet shared by
+" the HSV and HSL → RGB conversions. The caller adds the m offset.
+function! s:hue_to_rgb(h, c) abort
+  let l:hh = a:h / 60.0
+  let l:x = a:c * (1.0 - abs(s:fmod(l:hh, 2.0) - 1.0))
+  if     l:hh < 1 | return [a:c,  l:x,  0.0]
+  elseif l:hh < 2 | return [l:x,  a:c,  0.0]
+  elseif l:hh < 3 | return [0.0,  a:c,  l:x]
+  elseif l:hh < 4 | return [0.0,  l:x,  a:c]
+  elseif l:hh < 5 | return [l:x,  0.0,  a:c]
+  else            | return [a:c,  0.0,  l:x]
+  endif
+endfunction
+
 " Create a color from HSV (h: 0-360, s,v: 0-100, a: 0-1)
 function! github_theme#color#from_hsv(h, s, v, ...) abort
   let l:alpha = a:0 >= 1 ? a:1 : 1.0
   let l:h = s:fmod(a:h * 1.0, 360.0)
   let l:s = s:clamp(a:s * 1.0, 0.0, 100.0) / 100.0
   let l:v = s:clamp(a:v * 1.0, 0.0, 100.0) / 100.0
-
   let l:c = l:v * l:s
-  let l:hh = l:h / 60.0
-  let l:x = l:c * (1.0 - abs(s:fmod(l:hh, 2.0) - 1.0))
-  let l:r1 = 0.0 | let l:g1 = 0.0 | let l:b1 = 0.0
-  if l:hh >= 0 && l:hh < 1
-    let l:r1 = l:c | let l:g1 = l:x
-  elseif l:hh >= 1 && l:hh < 2
-    let l:r1 = l:x | let l:g1 = l:c
-  elseif l:hh >= 2 && l:hh < 3
-    let l:g1 = l:c | let l:b1 = l:x
-  elseif l:hh >= 3 && l:hh < 4
-    let l:g1 = l:x | let l:b1 = l:c
-  elseif l:hh >= 4 && l:hh < 5
-    let l:r1 = l:x | let l:b1 = l:c
-  else
-    let l:r1 = l:c | let l:b1 = l:x
-  endif
+  let [l:r1, l:g1, l:b1] = s:hue_to_rgb(l:h, l:c)
   let l:m = l:v - l:c
   return {
     \ 'red':   (l:r1 + l:m) * 255.0,
@@ -131,24 +129,8 @@ function! github_theme#color#from_hsl(h, s, l, ...) abort
   let l:h = s:fmod(a:h * 1.0, 360.0)
   let l:s = s:clamp(a:s * 1.0, 0.0, 100.0) / 100.0
   let l:ll = s:clamp(a:l * 1.0, 0.0, 100.0) / 100.0
-
   let l:c = (1.0 - abs(2.0 * l:ll - 1.0)) * l:s
-  let l:hh = l:h / 60.0
-  let l:x = l:c * (1.0 - abs(s:fmod(l:hh, 2.0) - 1.0))
-  let l:r1 = 0.0 | let l:g1 = 0.0 | let l:b1 = 0.0
-  if l:hh >= 0 && l:hh < 1
-    let l:r1 = l:c | let l:g1 = l:x
-  elseif l:hh >= 1 && l:hh < 2
-    let l:r1 = l:x | let l:g1 = l:c
-  elseif l:hh >= 2 && l:hh < 3
-    let l:g1 = l:c | let l:b1 = l:x
-  elseif l:hh >= 3 && l:hh < 4
-    let l:g1 = l:x | let l:b1 = l:c
-  elseif l:hh >= 4 && l:hh < 5
-    let l:r1 = l:x | let l:b1 = l:c
-  else
-    let l:r1 = l:c | let l:b1 = l:x
-  endif
+  let [l:r1, l:g1, l:b1] = s:hue_to_rgb(l:h, l:c)
   let l:m = l:ll - l:c * 0.5
   return {
     \ 'red':   (l:r1 + l:m) * 255.0,
@@ -184,35 +166,52 @@ function! github_theme#color#to_css(color, ...) abort
   return github_theme#color#to_hex(a:color, l:with_alpha)
 endfunction
 
-" Manual float max/min since vim's max()/min() only work on integer lists
-function! s:fmax3(a, b, c) abort
-  let l:m = a:a > a:b ? a:a : a:b
-  return l:m > a:c ? l:m : a:c
+" Float-safe max/min over a list.
+"
+" DO NOT replace these with vim's builtin max()/min(): per :help max(), those
+" coerce list elements via str2nr(), which truncates floats to integers and
+" silently breaks all HSV/HSL math here.
+function! s:fmax(list) abort
+  let l:m = a:list[0]
+  for l:v in a:list[1:]
+    if l:v > l:m | let l:m = l:v | endif
+  endfor
+  return l:m
 endfunction
 
-function! s:fmin3(a, b, c) abort
-  let l:m = a:a < a:b ? a:a : a:b
-  return l:m < a:c ? l:m : a:c
+function! s:fmin(list) abort
+  let l:m = a:list[0]
+  for l:v in a:list[1:]
+    if l:v < l:m | let l:m = l:v | endif
+  endfor
+  return l:m
+endfunction
+
+" Hue (degrees, 0-360) from normalized RGB and the precomputed max/delta.
+" Returns 0.0 when delta == 0 (achromatic).
+function! s:rgb_to_hue(r, g, b, max, delta) abort
+  if a:delta == 0.0
+    return 0.0
+  endif
+  let l:h = 0.0
+  if a:max == a:r
+    let l:h = 60.0 * s:fmod((a:g - a:b) / a:delta, 6.0)
+  elseif a:max == a:g
+    let l:h = 60.0 * ((a:b - a:r) / a:delta + 2.0)
+  else
+    let l:h = 60.0 * ((a:r - a:g) / a:delta + 4.0)
+  endif
+  return l:h < 0 ? l:h + 360.0 : l:h
 endfunction
 
 function! github_theme#color#to_hsv(color) abort
   let l:r = a:color.red / 255.0
   let l:g = a:color.green / 255.0
   let l:b = a:color.blue / 255.0
-  let l:max = s:fmax3(l:r, l:g, l:b)
-  let l:min = s:fmin3(l:r, l:g, l:b)
+  let l:max = s:fmax([l:r, l:g, l:b])
+  let l:min = s:fmin([l:r, l:g, l:b])
   let l:delta = l:max - l:min
-  let l:h = 0.0
-  if l:delta == 0.0
-    let l:h = 0.0
-  elseif l:max == l:r
-    let l:h = 60.0 * s:fmod((l:g - l:b) / l:delta, 6.0)
-  elseif l:max == l:g
-    let l:h = 60.0 * ((l:b - l:r) / l:delta + 2.0)
-  else
-    let l:h = 60.0 * ((l:r - l:g) / l:delta + 4.0)
-  endif
-  if l:h < 0 | let l:h = l:h + 360.0 | endif
+  let l:h = s:rgb_to_hue(l:r, l:g, l:b, l:max, l:delta)
   let l:s = l:max == 0.0 ? 0.0 : (l:delta / l:max) * 100.0
   let l:v = l:max * 100.0
   return { 'hue': l:h, 'saturation': l:s, 'value': l:v }
@@ -222,22 +221,11 @@ function! github_theme#color#to_hsl(color) abort
   let l:r = a:color.red / 255.0
   let l:g = a:color.green / 255.0
   let l:b = a:color.blue / 255.0
-  let l:max = s:fmax3(l:r, l:g, l:b)
-  let l:min = s:fmin3(l:r, l:g, l:b)
+  let l:max = s:fmax([l:r, l:g, l:b])
+  let l:min = s:fmin([l:r, l:g, l:b])
   let l:delta = l:max - l:min
   let l:ll = (l:max + l:min) / 2.0
-
-  let l:h = 0.0
-  if l:delta == 0.0
-    let l:h = 0.0
-  elseif l:max == l:r
-    let l:h = 60.0 * s:fmod((l:g - l:b) / l:delta, 6.0)
-  elseif l:max == l:g
-    let l:h = 60.0 * ((l:b - l:r) / l:delta + 2.0)
-  else
-    let l:h = 60.0 * ((l:r - l:g) / l:delta + 4.0)
-  endif
-  if l:h < 0 | let l:h = l:h + 360.0 | endif
+  let l:h = s:rgb_to_hue(l:r, l:g, l:b, l:max, l:delta)
 
   let l:s = 0.0
   if l:delta != 0.0

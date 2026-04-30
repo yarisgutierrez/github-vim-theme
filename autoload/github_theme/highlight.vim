@@ -86,28 +86,23 @@ endfunction
 " Map a hex color to the nearest xterm-256 index. Used for ctermfg/ctermbg
 " fallback when users are in a non-true-color terminal.
 "
-" This is an approximate port of the algorithm common in many vim themes:
-" we use the 6x6x6 color cube (indices 16-231) plus the grayscale ramp.
-function! github_theme#highlight#cterm_of(hex) abort
-  return s:cterm_of(a:hex)
-endfunction
-
+" Approximate port of the algorithm common in many vim themes: 6x6x6 color
+" cube (indices 16-231) plus grayscale ramp (232-255).
 let s:cterm_cache = {}
 
 function! s:cterm_of(hex) abort
   if a:hex ==? 'NONE' || a:hex ==? 'none' || a:hex ==# ''
     return 'NONE'
   endif
-  if has_key(s:cterm_cache, a:hex)
-    return s:cterm_cache[a:hex]
+  " Normalize key so '#aBC' and '#abc' share one cache entry.
+  let l:key = tolower(a:hex)
+  if has_key(s:cterm_cache, l:key)
+    return s:cterm_cache[l:key]
   endif
-  let l:s = tolower(a:hex)
-  if l:s[0] ==# '#'
-    let l:s = l:s[1:]
-  endif
+  let l:s = l:key[0] ==# '#' ? l:key[1:] : l:key
   if strlen(l:s) != 6
     " Not a hex we can map; return 'NONE' to be safe.
-    let s:cterm_cache[a:hex] = 'NONE'
+    let s:cterm_cache[l:key] = 'NONE'
     return 'NONE'
   endif
   let l:r = str2nr(l:s[0:1], 16)
@@ -132,7 +127,7 @@ function! s:cterm_of(hex) abort
   let l:gray_d = s:sqdist(l:r, l:g, l:b, l:gray_v, l:gray_v, l:gray_v)
 
   let l:result = l:gray_d < l:cube_d ? 232 + l:gi2 : l:cube_idx
-  let s:cterm_cache[a:hex] = l:result
+  let s:cterm_cache[l:key] = l:result
   return l:result
 endfunction
 

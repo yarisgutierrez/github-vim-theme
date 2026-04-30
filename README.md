@@ -23,10 +23,16 @@ A Vim port of [projekt0n/github-nvim-theme](https://github.com/projekt0n/github-
 
 ## Installation
 
-With vim-plug:
+With vim-plug — local clone:
 
 ```vim
-Plug 'github-vim-theme'
+Plug '~/.vim/plugged/github-vim-theme'
+```
+
+Or, once published to GitHub, by repo slug:
+
+```vim
+Plug 'YarisGutierrez/github-vim-theme'
 ```
 
 With Vim's built-in package manager:

@@ -24,6 +24,11 @@ function! github_theme#palette#themes() abort
   return copy(s:themes)
 endfunction
 
+" Memoize per-theme palettes keyed on (theme name, user-config serialization).
+" Invalidates automatically when g:github_theme_config changes.
+let s:palette_cache = {}
+let s:palette_cache_key = ''
+
 function! github_theme#palette#load(...) abort
   if a:0 >= 1 && a:1 !=# ''
     return s:load_one(a:1)
@@ -39,14 +44,17 @@ function! s:load_one(name) abort
   if index(s:themes, a:name) < 0
     throw 'github-theme: unknown theme: ' . a:name
   endif
-  let l:base = function('github_theme#palette#' . a:name . '#get')()
-  " Apply user palette overrides (specs/all + specs/<theme>)
-  let l:cfg = github_theme#config#get()
-  let l:palettes = get(l:cfg, 'palettes', {})
-  if type(l:palettes) != type({}) || empty(l:palettes)
-    return l:base
+  let l:cfg_key = string(get(g:, 'github_theme_config', {}))
+  if l:cfg_key !=# s:palette_cache_key
+    let s:palette_cache = {}
+    let s:palette_cache_key = l:cfg_key
   endif
-  let l:all = get(l:palettes, 'all', {})
-  let l:specific = get(l:palettes, a:name, {})
-  return github_theme#collect#deep_extend(l:base, l:all, l:specific)
+  if has_key(s:palette_cache, a:name)
+    return s:palette_cache[a:name]
+  endif
+  let l:base = call('github_theme#palette#' . a:name . '#get', [])
+  let l:merged = github_theme#collect#apply_overrides(
+    \ l:base, get(github_theme#config#get(), 'palettes', {}), a:name)
+  let s:palette_cache[a:name] = l:merged
+  return l:merged
 endfunction

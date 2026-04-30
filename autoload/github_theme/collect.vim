@@ -37,6 +37,24 @@ function! github_theme#collect#deep_extend(base, ...) abort
   return l:out
 endfunction
 
+" Apply two-tier overrides ('all' + per-name) onto a base dict.
+"
+" `overrides` is the user's overrides bucket — e.g. g:github_theme_config.specs
+" or .palettes or .groups. Both `all` and the per-name key are optional.
+" Returns `base` unchanged when `overrides` has nothing applicable, so callers
+" don't pay for a deep_extend just to get back the same dict.
+function! github_theme#collect#apply_overrides(base, overrides, name) abort
+  if type(a:overrides) != type({}) || empty(a:overrides)
+    return a:base
+  endif
+  let l:all      = get(a:overrides, 'all', {})
+  let l:specific = get(a:overrides, a:name, {})
+  if empty(l:all) && empty(l:specific)
+    return a:base
+  endif
+  return github_theme#collect#deep_extend(a:base, l:all, l:specific)
+endfunction
+
 function! s:merge_two(base, overlay) abort
   if type(a:base) != type({})
     return github_theme#collect#deep_copy(a:overlay)

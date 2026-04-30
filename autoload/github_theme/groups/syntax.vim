@@ -3,30 +3,36 @@
 "
 " Returns a dict of syntax highlight groups.
 
+" Build { fg, style } dict reading the style key from the user's styles map
+" (defaults to 'NONE' so highlight#set emits an explicit reset).
+function! s:styled(fg, stl, key) abort
+  return { 'fg': a:fg, 'style': get(a:stl, a:key, 'NONE') }
+endfunction
+
 function! github_theme#groups#syntax#get(spec, opts) abort
   let l:syn = a:spec.syntax
   let l:stl = get(a:opts, 'styles', {})
 
   let l:g = {}
 
-  let l:g.Comment     = { 'fg': l:syn.comment, 'style': get(l:stl, 'comments', 'NONE') }
-  let l:g.Constant    = { 'fg': l:syn.const, 'style': get(l:stl, 'constants', 'NONE') }
-  let l:g.String      = { 'fg': l:syn.string, 'style': get(l:stl, 'strings', 'NONE') }
+  let l:g.Comment     = s:styled(l:syn.comment,     l:stl, 'comments')
+  let l:g.Constant    = s:styled(l:syn.const,       l:stl, 'constants')
+  let l:g.String      = s:styled(l:syn.string,      l:stl, 'strings')
   let l:g.Character   = { 'link': 'String' }
-  let l:g.Number      = { 'fg': l:syn.number, 'style': get(l:stl, 'numbers', 'NONE') }
+  let l:g.Number      = s:styled(l:syn.number,      l:stl, 'numbers')
   let l:g.Float       = { 'link': 'Number' }
   let l:g.Boolean     = { 'link': 'Number' }
 
-  let l:g.Identifier  = { 'fg': l:syn.ident, 'style': get(l:stl, 'variables', 'NONE') }
-  let l:g.Function    = { 'fg': l:syn.func, 'style': get(l:stl, 'functions', 'NONE') }
+  let l:g.Identifier  = s:styled(l:syn.ident,       l:stl, 'variables')
+  let l:g.Function    = s:styled(l:syn.func,        l:stl, 'functions')
 
-  let l:g.Statement   = { 'fg': l:syn.keyword, 'style': get(l:stl, 'keywords', 'NONE') }
-  let l:g.Conditional = { 'fg': l:syn.conditional, 'style': get(l:stl, 'conditionals', 'NONE') }
+  let l:g.Statement   = s:styled(l:syn.keyword,     l:stl, 'keywords')
+  let l:g.Conditional = s:styled(l:syn.conditional, l:stl, 'conditionals')
   let l:g.Repeat      = { 'link': 'Conditional' }
   let l:g.Label       = { 'link': 'Conditional' }
 
-  let l:g.Operator  = { 'fg': l:syn.operator, 'style': get(l:stl, 'operators', 'NONE') }
-  let l:g.Keyword   = { 'fg': l:syn.keyword, 'style': get(l:stl, 'keywords', 'NONE') }
+  let l:g.Operator  = s:styled(l:syn.operator, l:stl, 'operators')
+  let l:g.Keyword   = s:styled(l:syn.keyword,  l:stl, 'keywords')
   let l:g.Exception = { 'link': 'Keyword' }
 
   let l:g.PreProc   = { 'fg': l:syn.preproc }
@@ -35,7 +41,7 @@ function! github_theme#groups#syntax#get(spec, opts) abort
   let l:g.Macro     = { 'link': 'PreProc' }
   let l:g.PreCondit = { 'link': 'PreProc' }
 
-  let l:g.Type         = { 'fg': l:syn.type, 'style': get(l:stl, 'types', 'NONE') }
+  let l:g.Type         = s:styled(l:syn.type, l:stl, 'types')
   let l:g.StorageClass = { 'link': 'Type' }
   let l:g.Structure    = { 'link': 'Type' }
   let l:g.Typedef      = { 'link': 'Type' }

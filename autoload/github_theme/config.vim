@@ -74,11 +74,20 @@ let s:defaults = {
   \ 'groups': {}
 \ }
 
-" Return the resolved config. Caller's g:github_theme_config is merged over
-" the defaults, so unspecified keys fall back to defaults.
+" Cache the resolved config keyed on the user's config dict serialized.
+" Invalidates automatically when g:github_theme_config changes (set or
+" mutated by the user). Callers MUST treat the return as read-only.
+let s:resolved_cache = {}
+let s:resolved_key = ''
+
 function! github_theme#config#get() abort
   let l:user = get(g:, 'github_theme_config', {})
-  return github_theme#collect#deep_extend(s:defaults, l:user)
+  let l:key = string(l:user)
+  if l:key !=# s:resolved_key
+    let s:resolved_cache = github_theme#collect#deep_extend(s:defaults, l:user)
+    let s:resolved_key = l:key
+  endif
+  return s:resolved_cache
 endfunction
 
 " Return just the options sub-dict (commonly accessed).

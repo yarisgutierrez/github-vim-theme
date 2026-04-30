@@ -6,6 +6,11 @@
 "   github_theme#spec#load()       -> dict theme -> spec
 "   github_theme#spec#load(name)   -> spec for single theme (with palette merged)
 
+" Memoize per-theme specs keyed on (theme name, user-config serialization).
+" Invalidates automatically when g:github_theme_config changes.
+let s:spec_cache = {}
+let s:spec_cache_key = ''
+
 function! github_theme#spec#load(...) abort
   let l:names = github_theme#palette#themes()
   if a:0 >= 1 && a:1 !=# ''
@@ -22,20 +27,24 @@ function! s:load_one(name) abort
   if index(github_theme#palette#themes(), a:name) < 0
     throw 'github-theme: unknown theme: ' . a:name
   endif
+  let l:cfg_key = string(get(g:, 'github_theme_config', {}))
+  if l:cfg_key !=# s:spec_cache_key
+    let s:spec_cache = {}
+    let s:spec_cache_key = l:cfg_key
+  endif
+  if has_key(s:spec_cache, a:name)
+    return s:spec_cache[a:name]
+  endif
   " Build the spec from the pre-generated function, then swap in any
   " user palette override (so spec.palette reflects user changes too).
-  let l:spec = function('github_theme#palette#' . a:name . '#spec')()
+  " Use call() rather than function()() so autoload resolves at call-time.
+  let l:spec = call('github_theme#palette#' . a:name . '#spec', [])
   let l:spec.palette = github_theme#palette#load(a:name)
-  " Apply user spec overrides.
-  let l:cfg = github_theme#config#get()
-  let l:specs = get(l:cfg, 'specs', {})
-  if type(l:specs) == type({}) && !empty(l:specs)
-    let l:all = get(l:specs, 'all', {})
-    let l:specific = get(l:specs, a:name, {})
-    let l:spec = github_theme#collect#deep_extend(l:spec, l:all, l:specific)
-  endif
+  let l:spec = github_theme#collect#apply_overrides(
+    \ l:spec, get(github_theme#config#get(), 'specs', {}), a:name)
   " Re-expose bg/fg shortcuts in case they were overridden via bg1/fg1.
   let l:spec.bg = l:spec.bg1
   let l:spec.fg = l:spec.fg1
+  let s:spec_cache[a:name] = l:spec
   return l:spec
 endfunction

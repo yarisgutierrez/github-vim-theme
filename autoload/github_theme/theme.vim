@@ -22,45 +22,62 @@ let s:module_names = [
   \ 'floaterm'
   \ ]
 
-function! github_theme#theme#apply(name) abort
-  let l:cfg  = github_theme#config#get()
-  let l:opts = l:cfg.options
-  let l:spec = github_theme#spec#load(a:name)
-
-  " Reset any prior colorscheme state cleanly.
-  "
-  " Order matters: `set background` implicitly re-initializes vim's default
-  " highlight groups. If we do `highlight clear` before `set background`,
-  " vim re-populates many groups with its defaults and our later per-group
-  " work only overwrites the ones we explicitly define — leaving the rest
-  " painted with the opposite-mode defaults. So: set background FIRST, then
-  " clear, then reset syntax, then apply our groups.
-  let l:meta = function('github_theme#palette#' . a:name . '#meta')()
-  if get(l:meta, 'light', v:false)
-    set background=light
-  else
-    set background=dark
+" Emit a one-shot warning if the terminal lacks 256-color and true-color
+" support. Idempotent: only fires once per Vim session.
+function! s:warn_capabilities() abort
+  if get(g:, 'github_theme_capabilities_warned', 0)
+    return
   endif
+  let g:github_theme_capabilities_warned = 1
+  if !has('gui_running') && &t_Co < 256 && !has('termguicolors')
+    echohl WarningMsg
+    echom 'github-theme: terminal lacks 256-color support; theme may look wrong.'
+    echohl None
+  endif
+endfunction
+
+" Reset vim's highlight state in the order Vim's documented contract requires.
+"
+" Per :help highlight-clear: "Uses the current value of 'background' to
+" decide which default colors to use." So `:set background` MUST come before
+" `:hi clear`, or any group we don't explicitly overwrite ends up painted
+" with the opposite-mode defaults.
+"
+" DO NOT reorder the body of this function.
+function! s:reset_state(is_light) abort
+  let &background = a:is_light ? 'light' : 'dark'
   highlight clear
   if exists('syntax_on')
     syntax reset
   endif
+endfunction
+
+function! github_theme#theme#apply(name) abort
+  call s:warn_capabilities()
+
+  let l:cfg  = github_theme#config#get()
+  let l:opts = l:cfg.options
+  let l:spec = github_theme#spec#load(a:name)
+
+  let l:meta = call('github_theme#palette#' . a:name . '#meta', [])
+  call s:reset_state(get(l:meta, 'light', v:false))
 
   let l:groups = {}
   call extend(l:groups, github_theme#groups#editor#get(l:spec, l:opts))
   call extend(l:groups, github_theme#groups#syntax#get(l:spec, l:opts))
 
   " Modules — only include enabled ones.
+  "
+  " Use call() (the builtin) for dynamic dispatch. Unlike function(), call()
+  " resolves the name at call-time, which triggers autoload of the target
+  " file. See :help call() and :help autoload.
   for l:m in s:module_names
     if !github_theme#config#module_enabled(l:m)
       continue
     endif
-    " Force the autoload file to be sourced by calling the function
-    " indirectly via execute — `function()` alone won't trigger autoload
-    " for a not-yet-sourced file.
     let l:mod_groups = {}
     try
-      execute 'let l:mod_groups = github_theme#modules#' . l:m . '#get(l:spec, l:opts)'
+      let l:mod_groups = call('github_theme#modules#' . l:m . '#get', [l:spec, l:opts])
     catch /E117\|E130/
       " Module function not defined; skip silently.
       continue
@@ -70,13 +87,9 @@ function! github_theme#theme#apply(name) abort
     endif
   endfor
 
-  " Apply user group overrides (groups.all + groups.<name>)
-  let l:user_groups = get(l:cfg, 'groups', {})
-  if type(l:user_groups) == type({}) && !empty(l:user_groups)
-    let l:all      = get(l:user_groups, 'all', {})
-    let l:specific = get(l:user_groups, a:name, {})
-    let l:groups = github_theme#collect#deep_extend(l:groups, l:all, l:specific)
-  endif
+  " Apply user group overrides (groups.all + groups.<name>).
+  let l:groups = github_theme#collect#apply_overrides(
+    \ l:groups, get(l:cfg, 'groups', {}), a:name)
 
   " Flush to :highlight commands.
   call github_theme#highlight#apply(l:groups)
